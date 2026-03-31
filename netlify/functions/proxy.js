@@ -4,9 +4,8 @@ const ALLOWED_CATEGORIES = [
   'plumber', 'electrician', 'landscaping', 'daycare', 'nail salon', 'bakery'
 ];
 
-// Simple in-memory rate limiter (resets on function cold start)
 const rateLimitMap = {};
-const RATE_LIMIT = 10; // max requests per IP per minute
+const RATE_LIMIT = 30; // max requests per IP per minute
 
 function isRateLimited(ip) {
   const now = Date.now();
@@ -27,12 +26,10 @@ exports.handler = async function(event) {
 
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
 
-  // Only allow POST
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  // Rate limiting
   const ip = event.headers['x-forwarded-for'] || event.headers['client-ip'] || 'unknown';
   if (isRateLimited(ip)) {
     return { statusCode: 429, headers, body: JSON.stringify({ error: 'Too many requests. Please wait a moment.' }) };
@@ -50,7 +47,6 @@ exports.handler = async function(event) {
     if (type === 'search') {
       const { city, category } = params;
 
-      // Input validation
       if (!city || typeof city !== 'string' || city.length > 100) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid city' }) };
       }
@@ -68,7 +64,6 @@ exports.handler = async function(event) {
     if (type === 'details') {
       const { place_id } = params;
 
-      // Validate place_id format
       if (!place_id || typeof place_id !== 'string' || !/^[A-Za-z0-9_-]+$/.test(place_id) || place_id.length > 300) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid place_id' }) };
       }
@@ -82,7 +77,6 @@ exports.handler = async function(event) {
     if (type === 'claude') {
       const { messages, model, max_tokens } = params;
 
-      // Validate claude params
       if (!messages || !Array.isArray(messages) || messages.length === 0) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid messages' }) };
       }
