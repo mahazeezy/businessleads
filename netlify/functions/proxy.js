@@ -5,7 +5,7 @@ const ALLOWED_CATEGORIES = [
 ];
 
 const rateLimitMap = {};
-const RATE_LIMIT = 30; // max requests per IP per minute
+const RATE_LIMIT = 30;
 
 function isRateLimited(ip) {
   const now = Date.now();
@@ -16,9 +16,12 @@ function isRateLimited(ip) {
   return false;
 }
 
+const ALLOWED_ORIGIN = 'https://bznessleads.netlify.app';
+
 exports.handler = async function(event) {
+  const origin = event.headers['origin'] || '';
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': origin === ALLOWED_ORIGIN ? ALLOWED_ORIGIN : '',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json'
@@ -28,6 +31,11 @@ exports.handler = async function(event) {
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
+  }
+
+  // Block requests from unknown origins
+  if (origin !== ALLOWED_ORIGIN) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: 'Forbidden' }) };
   }
 
   const ip = event.headers['x-forwarded-for'] || event.headers['client-ip'] || 'unknown';
