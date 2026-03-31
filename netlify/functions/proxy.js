@@ -18,6 +18,7 @@ exports.handler = async function(event) {
       const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${query}&key=${GOOGLE_KEY}`;
       const res = await fetch(url);
       const data = await res.json();
+      console.log('GOOGLE RESPONSE:', JSON.stringify(data).slice(0, 500));
       return { statusCode: 200, headers, body: JSON.stringify(data) };
     }
 
