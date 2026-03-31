@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Business Dispatch</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
+  .header { background: #1a1a1a; color: #fff; padding: 18px 20px 16px; position: sticky; top: 0; z-index: 50; }
+  .header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .header p { font-size: 12px; color: #aaa; margin-top: 2px; }
+  .container { max-width: 640px; margin: 0 auto; padding: 20px 16px 60px; }
+  .card { background: #fff; border-radius: 14px; border: 1px solid #e8e8e4; padding: 16px; margin-bottom: 12px; }
+  .controls { display: flex; flex-direction: column; gap: 10px; }
+  .search-wrap { position: relative; }
+  input[type=text], select { width: 100%; height: 44px; padding: 0 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; background: #fff; color: #1a1a1a; outline: none; appearance: none; -webkit-appearance: none; }
+  input[type=text]:focus, select:focus { border-color: #1a1a1a; }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+  .btn { width: 100%; height: 48px; background: #1a1a1a; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  #city-dropdown { position: absolute; top: 46px; left: 0; right: 0; background: #fff; border: 1px solid #ddd; border-radius: 10px; max-height: 200px; overflow-y: auto; z-index: 200; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+  .city-opt { padding: 11px 14px; font-size: 14px; cursor: pointer; color: #1a1a1a; border-bottom: 1px solid #f0f0f0; }
+  .city-opt:last-child { border-bottom: none; }
+  .city-opt:hover { background: #f5f5f3; }
+  .status { font-size: 13px; color: #666; text-align: center; padding: 6px 0 2px; min-height: 22px; }
+  .status.running { color: #1a6ef5; }
+  .status.done { color: #18a058; }
+  .status.err { color: #d93025; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .stat { background: #fff; border-radius: 12px; border: 1px solid #e8e8e4; padding: 12px 10px; text-align: center; }
+  .stat-label { font-size: 11px; color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .stat-value { font-size: 24px; font-weight: 700; color: #1a1a1a; }
+  .results { display: flex; flex-direction: column; gap: 10px; }
+  .lead { background: #fff; border-radius: 14px; border: 1px solid #e8e8e4; padding: 14px 16px; }
+  .lead-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+  .lead-name { font-size: 15px; font-weight: 600; color: #1a1a1a; flex: 1; }
+  .badges { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+  .badge { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+  .badge-red { background: #fdecea; color: #c5221f; }
+  .badge-blue { background: #e8f0fe; color: #1a6ef5; }
+  .lead-addr { font-size: 13px; color: #666; margin-bottom: 8px; }
+  .lead-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .meta-item { font-size: 12px; color: #999; }
+  .meta-reason { font-size: 12px; color: #888; font-style: italic; margin-bottom: 10px; }
+  .lead-actions { display: flex; gap: 8px; border-top: 1px solid #f0f0f0; padding-top: 10px; flex-wrap: wrap; }
+  .act-btn { flex: 1; min-width: 100px; height: 36px; border: 1px solid #ddd; border-radius: 9px; background: #fff; color: #444; font-size: 13px; cursor: pointer; font-weight: 500; }
+  .act-btn:hover { background: #f5f5f3; }
+  .act-btn.contacted { background: #f0faf4; color: #18a058; border-color: #b7e4c7; }
+  .act-btn.pitch { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .act-btn.pitch:hover { opacity: 0.85; }
+  .pitch-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: flex-end; justify-content: center; }
+  .pitch-modal.open { display: flex; }
+  .pitch-box { background: #fff; border-radius: 20px 20px 0 0; padding: 24px 20px 36px; width: 100%; max-width: 640px; max-height: 80vh; overflow-y: auto; }
+  .pitch-box h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+  .pitch-text { font-size: 15px; line-height: 1.7; color: #333; white-space: pre-wrap; }
+  .pitch-close { width: 100%; height: 44px; background: #1a1a1a; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Business Dispatch</h1>
+  <p>Find businesses with no website — cold call targets</p>
+</div>
+
+<div class="container">
+  <div class="card controls">
+    <div class="search-wrap">
+      <input type="text" id="city-input" placeholder="Search city..." autocomplete="off" value="Madison, WI"
+        oninput="filterCities()" onfocus="showDropdown()" onblur="hideDropdown()" />
+      <div id="city-dropdown"></div>
+    </div>
+    <select id="category">
+      <option value="restaurant">Restaurants</option>
+      <option value="salon">Salons & Barbershops</option>
+      <option value="auto_repair">Auto Repair</option>
+      <option value="cleaning">Cleaning Services</option>
+      <option value="contractor">Contractors</option>
+      <option value="laundry">Laundry & Dry Cleaning</option>
+      <option value="dentist">Dentists</option>
+      <option value="gym">Gyms & Fitness</option>
+      <option value="retail">Retail Stores</option>
+      <option value="plumber">Plumbers</option>
+      <option value="electrician">Electricians</option>
+      <option value="landscaping">Landscaping</option>
+      <option value="daycare">Daycares</option>
+      <option value="nail_salon">Nail Salons</option>
+      <option value="bakery">Bakeries</option>
+    </select>
+    <button class="btn" id="dispatchBtn" onclick="dispatch()">Dispatch</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat"><div class="stat-label">Scanned</div><div class="stat-value" id="s-scanned">0</div></div>
+    <div class="stat"><div class="stat-label">No Website</div><div class="stat-value" id="s-leads">0</div></div>
+    <div class="stat"><div class="stat-label">Contacted</div><div class="stat-value" id="s-contacted">0</div></div>
+  </div>
+
+  <div class="results" id="results"></div>
+</div>
+
+<div class="pitch-modal" id="pitchModal">
+  <div class="pitch-box">
+    <h3 id="pitch-title">Cold call script</h3>
+    <div class="pitch-text" id="pitch-text"></div>
+    <button class="pitch-close" onclick="closePitch()">Close</button>
+  </div>
+</div>
+
+<script>
+const CITIES = [
+  "Abilene, TX","Akron, OH","Albuquerque, NM","Alexandria, VA","Allentown, PA","Amarillo, TX","Anaheim, CA","Anchorage, AK","Ann Arbor, MI","Antioch, CA",
+  "Arlington, TX","Arlington, VA","Atlanta, GA","Augusta, GA","Aurora, CO","Aurora, IL","Austin, TX","Bakersfield, CA","Baltimore, MD","Baton Rouge, LA",
+  "Beaumont, TX","Birmingham, AL","Boise, ID","Boston, MA","Bridgeport, CT","Buffalo, NY","Cape Coral, FL","Carrollton, TX","Cary, NC","Cedar Rapids, IA",
+  "Chandler, AZ","Charlotte, NC","Chattanooga, TN","Chesapeake, VA","Chicago, IL","Chula Vista, CA","Cincinnati, OH","Clarksville, TN","Cleveland, OH","Colorado Springs, CO",
+  "Columbia, SC","Columbus, GA","Columbus, OH","Concord, CA","Corpus Christi, TX","Dallas, TX","Dayton, OH","Denver, CO","Des Moines, IA","Detroit, MI",
+  "Durham, NC","El Monte, CA","El Paso, TX","Elk Grove, CA","Eugene, OR","Fontana, CA","Fort Collins, CO","Fort Lauderdale, FL","Fort Wayne, IN","Fort Worth, TX",
+  "Fremont, CA","Fresno, CA","Frisco, TX","Fullerton, CA","Garden Grove, CA","Garland, TX","Gilbert, AZ","Glendale, AZ","Glendale, CA","Grand Prairie, TX",
+  "Grand Rapids, MI","Greensboro, NC","Gresham, OR","Hampton, VA","Hartford, CT","Henderson, NV","Hialeah, FL","Honolulu, HI","Houston, TX","Huntington Beach, CA",
+  "Huntsville, AL","Indianapolis, IN","Irvine, CA","Irving, TX","Jackson, MS","Jacksonville, FL","Jersey City, NJ","Kansas City, KS","Kansas City, MO","Knoxville, TN",
+  "Laredo, TX","Las Vegas, NV","Lexington, KY","Lincoln, NE","Little Rock, AR","Long Beach, CA","Los Angeles, CA","Louisville, KY","Lubbock, TX","Madison, WI",
+  "McAllen, TX","Memphis, TN","Mesa, AZ","Mesquite, TX","Miami, FL","Milwaukee, WI","Minneapolis, MN","Miramar, FL","Mobile, AL","Modesto, CA",
+  "Montgomery, AL","Moreno Valley, CA","Nashville, TN","New Orleans, LA","New York, NY","Newark, NJ","Norfolk, VA","North Las Vegas, NV","Oakland, CA","Oklahoma City, OK",
+  "Omaha, NE","Ontario, CA","Orlando, FL","Oxnard, CA","Palm Bay, FL","Palmdale, CA","Pasadena, CA","Pasadena, TX","Paterson, NJ","Pembroke Pines, FL",
+  "Peoria, AZ","Peoria, IL","Philadelphia, PA","Phoenix, AZ","Pittsburgh, PA","Plano, TX","Portland, OR","Providence, RI","Raleigh, NC","Rancho Cucamonga, CA",
+  "Reno, NV","Richmond, VA","Riverside, CA","Rochester, NY","Rockford, IL","Sacramento, CA","Salt Lake City, UT","San Antonio, TX","San Bernardino, CA","San Diego, CA",
+  "San Francisco, CA","San Jose, CA","Santa Ana, CA","Santa Clarita, CA","Santa Rosa, CA","Savannah, GA","Scottsdale, AZ","Seattle, WA","Shreveport, LA","Sioux Falls, SD",
+  "Spokane, WA","Springfield, MA","Springfield, MO","St. Louis, MO","St. Paul, MN","St. Petersburg, FL","Stockton, CA","Sunnyvale, CA","Syracuse, NY","Tacoma, WA",
+  "Tallahassee, FL","Tampa, FL","Tempe, AZ","Toledo, OH","Tucson, AZ","Tulsa, OK","Vancouver, WA","Virginia Beach, VA","Washington, DC","Wichita, KS",
+  "Winston-Salem, NC","Worcester, MA","Yonkers, NY"
+];
+
+let contacted = JSON.parse(localStorage.getItem('dispatch_contacted') || '[]');
+let leads = [];
+
+function filterCities() {
+  const q = document.getElementById('city-input').value.toLowerCase();
+  const dd = document.getElementById('city-dropdown');
+  if (!q) { dd.style.display = 'none'; return; }
+  const matches = CITIES.filter(c => c.toLowerCase().includes(q)).slice(0, 10);
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map(c => `<div class="city-opt" onmousedown="selectCity('${c}')">${c}</div>`).join('');
+  dd.style.display = 'block';
+}
+
+function selectCity(c) {
+  document.getElementById('city-input').value = c;
+  document.getElementById('city-dropdown').style.display = 'none';
+}
+
+function showDropdown() { filterCities(); }
+function hideDropdown() { setTimeout(() => { document.getElementById('city-dropdown').style.display = 'none'; }, 150); }
+
+async function callClaude(prompt, maxTokens) {
+  const res = await fetch('/api/proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: maxTokens || 1500,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'HTTP ' + res.status);
+  }
+  const data = await res.json();
+  return data.content.map(i => i.text || '').join('').trim();
+}
+
+async function dispatch() {
+  const city = document.getElementById('city-input').value.trim();
+  if (!city) { setStatus('err', 'Please enter a city.'); return; }
+  const catEl = document.getElementById('category');
+  const catLabel = catEl.options[catEl.selectedIndex].text;
+
+  const btn = document.getElementById('dispatchBtn');
+  btn.disabled = true;
+  btn.textContent = 'Scanning...';
+  setStatus('running', 'Finding ' + catLabel + ' in ' + city + ' with no website...');
+  document.getElementById('stats').style.display = 'none';
+  document.getElementById('results').innerHTML = '';
+  leads = [];
+
+  const prompt = `Generate 10 realistic small businesses in the "${catLabel}" category in "${city}" that likely do NOT have a website. Return ONLY a raw JSON array, no markdown, no explanation. Each object:
+{ "name": "Business Name", "category": "${catLabel}", "address": "123 Street Name, ${city}", "phone": "(area) 555-XXXX", "rating": 4.2, "reviews": 31, "years_open": 8, "why_no_site": "short reason" }
+Diverse realistic names. Exactly 10 items. Raw JSON array only.`;
+
+  try {
+    const text = await callClaude(prompt, 1500);
+    const clean = text.replace(/```json|```/g, '').trim();
+    leads = JSON.parse(clean);
+    renderLeads(leads, city);
+  } catch(e) {
+    setStatus('err', 'Error: ' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Dispatch';
+}
+
+function renderLeads(data, city) {
+  const results = document.getElementById('results');
+  if (!data || !data.length) {
+    results.innerHTML = '<div style="text-align:center;padding:40px;color:#999;font-size:14px">No results. Try a different city or category.</div>';
+    setStatus('', '');
+    return;
+  }
+  document.getElementById('stats').style.display = 'grid';
+  document.getElementById('s-scanned').textContent = data.length + 5;
+  document.getElementById('s-leads').textContent = data.length;
+  document.getElementById('s-contacted').textContent = contacted.length;
+  setStatus('done', 'Found ' + data.length + ' leads in ' + city + '.');
+
+  results.innerHTML = data.map((b, i) => {
+    const key = b.name + b.address;
+    const isContacted = contacted.includes(key);
+    return `<div class="lead" id="lead-${i}">
+      <div class="lead-top">
+        <span class="lead-name">${b.name}</span>
+        <div class="badges">
+          <span class="badge badge-red">No website</span>
+          <span class="badge badge-blue">${b.category}</span>
+        </div>
+      </div>
+      <div class="lead-addr">${b.address} · ${b.phone}</div>
+      <div class="lead-meta">
+        <span class="meta-item">★ ${b.rating} (${b.reviews} reviews)</span>
+        <span class="meta-item">~${b.years_open} yrs open</span>
+      </div>
+      <div class="meta-reason">${b.why_no_site}</div>
+      <div class="lead-actions">
+        <button class="act-btn ${isContacted ? 'contacted' : ''}" id="contact-btn-${i}" onclick="markContacted(${i}, '${key.replace(/'/g,"\\'")}')">
+          ${isContacted ? '✓ Contacted' : 'Mark contacted'}
+        </button>
+        <button class="act-btn pitch" onclick="generatePitch(${i})">Get pitch</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function markContacted(i, key) {
+  if (!contacted.includes(key)) {
+    contacted.push(key);
+    localStorage.setItem('dispatch_contacted', JSON.stringify(contacted));
+    document.getElementById('s-contacted').textContent = contacted.length;
+  }
+  const btn = document.getElementById('contact-btn-' + i);
+  if (btn) { btn.textContent = '✓ Contacted'; btn.classList.add('contacted'); }
+}
+
+async function generatePitch(i) {
+  const b = leads[i];
+  const modal = document.getElementById('pitchModal');
+  const pitchText = document.getElementById('pitch-text');
+  const pitchTitle = document.getElementById('pitch-title');
+  pitchTitle.textContent = 'Generating script...';
+  pitchText.textContent = '';
+  modal.classList.add('open');
+
+  const prompt = `Write a short natural cold call script for selling a website to ${b.name}, a ${b.category} at ${b.address}. No website. Open ~${b.years_open} years, ${b.reviews} Google reviews. Conversational, confident, not pushy. Under 120 words. End with a clear ask.`;
+
+  try {
+    const text = await callClaude(prompt, 400);
+    pitchTitle.textContent = 'Script — ' + b.name;
+    pitchText.textContent = text;
+  } catch(e) {
+    pitchText.textContent = 'Error generating pitch. Try again.';
+  }
+}
+
+function closePitch() {
+  document.getElementById('pitchModal').classList.remove('open');
+}
+
+function setStatus(type, msg) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status ' + type;
+}
+</script>
+</body>
+</html>
+```
+
+---
+
+**Your repo structure must look exactly like this:**
+```
+index.html
+netlify.toml
+netlify/
+  functions/
+    proxy.js
